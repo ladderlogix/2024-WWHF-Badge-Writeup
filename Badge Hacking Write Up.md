@@ -1,9 +1,3 @@
----
-tags:
-  - writeups
----
-----
-
 # Preface
 
 I want to thank everyone who put on the conference and make the badge. I had a blast and very thankful for my team.
@@ -360,17 +354,17 @@ I threw in the bin file found from the S3 bucket into a disassembler.
 
 #### IDA Pro
 This is probably the best tool to analyze the binary but with the high cost it may be unavaible to most. I searched for `{` in strings to hunt down the flag.
-![[Pasted image 20241011115829.png]]
+![Pasted image 20241011115829.png]
 
 #### Ghidra
-![[Pasted image 20241011120335.png]]
+![Pasted image 20241011120335.png]
 You will want to set your language to `Xtensa Little Endian`
-![[Pasted image 20241011121721.png]]
+![Pasted image 20241011121721.png]
 It is still hard to pull out the string on this but if you scroll down you will see you string with a message
 
 #### Binary Ninja
 This is not the best for decomplation but strings are on point
-![[Pasted image 20241011120206.png]]
+![Pasted image 20241011120206.png](Pasted image 20241011120206.png)
 
 
 ## Flag 2
