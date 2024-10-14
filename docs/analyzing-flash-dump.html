@@ -1,0 +1,262 @@
+<!DOCTYPE html SYSTEM "about:legacy-compat">
+<html lang="en-US" data-preset="contrast" data-primary-color="#307FFF"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta charset="UTF-8"><meta name="robots" content="noindex"><meta name="built-on" content="2024-10-13T20:44:56.6307894"><title>Analyzing Flash Dump | Instance Name</title><script type="application/json" id="virtual-toc-data">[{"id":"installing-esp32-image-parser","level":0,"title":"Installing esp32 image parser","anchor":"#installing-esp32-image-parser"},{"id":"showing-the-dump-partitions","level":0,"title":"Showing the dump partitions","anchor":"#showing-the-dump-partitions"},{"id":"pulling-data-out-of-the-partitions","level":0,"title":"Pulling Data Out of the Partitions","anchor":"#pulling-data-out-of-the-partitions"},{"id":"reviewing-creds-found-in-nvs","level":0,"title":"Reviewing Creds found in NVS","anchor":"#reviewing-creds-found-in-nvs"},{"id":"wifi-creds","level":0,"title":"Wifi Creds","anchor":"#wifi-creds"},{"id":"aws-bucket","level":0,"title":"AWS Bucket","anchor":"#aws-bucket"},{"id":"mqtt","level":0,"title":"MQTT","anchor":"#mqtt"}]</script><script type="application/json" id="topic-shortcuts"></script><link href="https://resources.jetbrains.com/writerside/apidoc/6.10.0-b419/app.css" rel="stylesheet"><meta name="msapplication-TileColor" content="#000000"><link rel="apple-touch-icon" sizes="180x180" href="https://jetbrains.com/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="32x32" href="https://jetbrains.com/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="https://jetbrains.com/favicon-16x16.png"><meta name="msapplication-TileImage" content="https://resources.jetbrains.com/storage/ui/favicons/mstile-144x144.png"><meta name="msapplication-square70x70logo" content="https://resources.jetbrains.com/storage/ui/favicons/mstile-70x70.png"><meta name="msapplication-square150x150logo" content="https://resources.jetbrains.com/storage/ui/favicons/mstile-150x150.png"><meta name="msapplication-wide310x150logo" content="https://resources.jetbrains.com/storage/ui/favicons/mstile-310x150.png"><meta name="msapplication-square310x310logo" content="https://resources.jetbrains.com/storage/ui/favicons/mstile-310x310.png"><meta name="image" content=""><!-- Open Graph --><meta property="og:title" content="Analyzing Flash Dump | Instance Name"><meta property="og:description" content=""><meta property="og:image" content=""><meta property="og:site_name" content="Instance Name Help"><meta property="og:type" content="website"><meta property="og:locale" content="en_US"><meta property="og:url" content="writerside-documentation/analyzing-flash-dump.html"><!-- End Open Graph --><!-- Twitter Card --><meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content=""><meta name="twitter:title" content="Analyzing Flash Dump | Instance Name"><meta name="twitter:description" content=""><meta name="twitter:creator" content=""><meta name="twitter:image:src" content=""><!-- End Twitter Card --><!-- Schema.org WebPage --><script type="application/ld+json">{
+    "@context": "http://schema.org",
+    "@type": "WebPage",
+    "@id": "writerside-documentation/analyzing-flash-dump.html#webpage",
+    "url": "writerside-documentation/analyzing-flash-dump.html",
+    "name": "Analyzing Flash Dump | Instance Name",
+    "description": "",
+    "image": "",
+    "inLanguage":"en-US"
+}</script><!-- End Schema.org --><!-- Schema.org WebSite --><script type="application/ld+json">{
+    "@type": "WebSite",
+    "@id": "writerside-documentation/#website",
+    "url": "writerside-documentation/",
+    "name": "Instance Name Help"
+}</script><!-- End Schema.org --></head><body data-id="Analyzing-Flash-Dump" data-main-title="Analyzing Flash Dump" data-article-props="{&quot;seeAlsoStyle&quot;:&quot;links&quot;}" data-template="article" data-breadcrumbs=""><div class="wrapper"><main class="panel _main"><header class="panel__header"><div class="container"><h3>Instance Name  Help</h3><div class="panel-trigger"></div></div></header><section class="panel__content"><div class="container"><article class="article" data-shortcut-switcher="inactive"><h1 data-toc="Analyzing-Flash-Dump" id="Analyzing-Flash-Dump.md">Analyzing Flash Dump</h1><p id="xun7yq_3">I will be using <a href="https://github.com/tenable/esp32_image_parser" id="xun7yq_11" data-external="true" rel="noopener noreferrer">esp32 image parser</a> to analyze, instead of <a href="https://github.com/BlackVS/esp32knife" id="xun7yq_12" data-external="true" rel="noopener noreferrer">esp32knife</a> because I could not esp32knife to recognize my dump or get it to dump my firmware</p><section class="chapter"><h2 id="installing-esp32-image-parser" data-toc="installing-esp32-image-parser">Installing esp32 image parser</h2><section class="chapter"><h3 id="download-the-repo" data-toc="download-the-repo">Download the repo</h3><div class="code-block" data-lang="bash">
+git clone https://github.com/tenable/esp32_image_parser
+</div></section><section class="chapter"><h3 id="install-requirements" data-toc="install-requirements">Install Requirements</h3><div class="code-block" data-lang="bash">
+python -m pip install -r requiremnets.txt
+</div></section></section><section class="chapter"><h2 id="showing-the-dump-partitions" data-toc="showing-the-dump-partitions">Showing the dump partitions</h2><div class="code-block" data-lang="bash">
+python esp32_image_parser.py show_partitions badge_flash.bin
+</div><section class="chapter"><h3 id="annotated-output" data-toc="annotated-output">Annotated Output</h3><div class="code-block" data-lang="none">
+└─$ python esp32_image_parser.py show_partitions badge_flash.bin
+reading partition table...
+entry 0:
+  label      : nvs       -&gt; Non-voliatle Storage
+  offset     : 0x9000
+  length     : 20480
+  type       : 1 [DATA]
+  sub type   : 2 [WIFI]
+
+entry 1:
+  label      : otadata
+  offset     : 0xe000
+  length     : 8192
+  type       : 1 [DATA]
+  sub type   : 0 [OTA]
+
+entry 2:
+  label      : app0       -&gt; Core 0 Program
+  offset     : 0x10000
+  length     : 3342336
+  type       : 0 [APP]
+  sub type   : 16 [ota_0]
+
+entry 3:
+  label      : app1       -&gt; Core 1 Program
+  offset     : 0x340000
+  length     : 3342336
+  type       : 0 [APP]
+  sub type   : 17 [ota_1]
+
+entry 4:
+  label      : spiffs     -&gt; File Systems
+  offset     : 0x670000
+  length     : 1572864
+  type       : 1 [DATA]
+  sub type   : 130 [unknown]
+
+entry 5:
+  label      : coredump   -&gt; Crash Dumps
+  offset     : 0x7f0000
+  length     : 65536
+  type       : 1 [DATA]
+  sub type   : 3 [unknown]
+
+MD5sum:
+467eb896e29d1aa938c557f4cdfc4c5b
+Done
+</div></section></section><section class="chapter"><h2 id="pulling-data-out-of-the-partitions" data-toc="pulling-data-out-of-the-partitions">Pulling Data Out of the Partitions</h2><section class="chapter"><h3 id="reading-non-volatile-storage" data-toc="reading-non-volatile-storage">Reading Non-Volatile Storage</h3><p id="xun7yq_22">Esp32 Image Parser can dump nvs data</p><div class="code-block" data-lang="bash">
+python esp32_image_parser.py show_partitions badge_flash.bin
+</div><section class="chapter"><h4 id="truncated-output" data-toc="truncated-output">Truncated Output</h4><div class="code-block" data-lang="bash">
+└─$ python esp32_image_parser.py dump_nvs badge.bin -partition nvs
+Dumping partition 'nvs' to nvs_out.bin
+Page 0
+  page state : FULL
+  page seq no. : 0
+  page version : 2
+  crc 32 : 3115986308
+  page entry state bitmap (decoded) : 222222222222222222222222202222222222222222222222222222222222222222222222222222222222222222222222222222222222202222222222222233
+  Entry 0
+  Bitmap State : Written
+    Written Entry 0
+      NS Index : 0
+      Type : U8
+      Span : 1
+      ChunkIndex : 255
+      Key : badge_config
+      Data (U8) : 1
+
+  Entry 1
+  Bitmap State : Written
+    Written Entry 1
+      NS Index : 1
+          NS : badge_config
+      Type : STR
+      Span : 3
+      ChunkIndex : 255
+      Key : ServerPath
+      String :
+        Size : 38
+        Data : https://wwhf2024.s3.amazonaws.com/v2/
+
+  Entry 4
+  Bitmap State : Written
+    Written Entry 4
+      NS Index : 1
+          NS : badge_config
+      Type : STR
+      Span : 2
+      ChunkIndex : 255
+      Key : FirmwareName
+      String :
+        Size : 13
+        Data : wwhf2024.bin
+
+  Entry 6
+  Bitmap State : Written
+    Written Entry 6
+      NS Index : 1
+          NS : badge_config
+      Type : I32
+      Span : 1
+      ChunkIndex : 255
+      Key : HardwareType
+      Data (I32) : 4
+
+  Entry 7
+  Bitmap State : Written
+    Written Entry 7
+      NS Index : 1
+          NS : badge_config
+      Type : STR
+      Span : 2
+      ChunkIndex : 255
+      Key : SSIDName
+      String :
+        Size : 12
+        Data : WWHF Badges
+
+  Entry 9
+  Bitmap State : Written
+    Written Entry 9
+      NS Index : 1
+          NS : badge_config
+      Type : STR
+      Span : 2
+      ChunkIndex : 255
+      Key : SSIDPassword
+      String :
+        Size : 18
+        Data : 77HackTheEsp3too@
+
+  Entry 11
+  Bitmap State : Written
+    Written Entry 11
+      NS Index : 1
+          NS : badge_config
+      Type : STR
+      Span : 3
+      ChunkIndex : 255
+      Key : MQTTBroker
+      String :
+        Size : 34
+        Data : w6e1deed.ala.us-east-1.emqxsl.com
+
+  Entry 14
+  Bitmap State : Written
+    Written Entry 14
+      NS Index : 1
+          NS : badge_config
+      Type : STR
+      Span : 2
+      ChunkIndex : 255
+      Key : MQTTBroadcast
+      String :
+        Size : 17
+        Data : broadcast/action
+
+  Entry 16
+  Bitmap State : Written
+    Written Entry 16
+      NS Index : 1
+          NS : badge_config
+      Type : STR
+      Span : 2
+      ChunkIndex : 255
+      Key : MQTTEvents
+      String :
+        Size : 14
+        Data : events/device
+
+  Entry 18
+  Bitmap State : Written
+    Written Entry 18
+      NS Index : 1
+          NS : badge_config
+      Type : STR
+      Span : 2
+      ChunkIndex : 255
+      Key : MQTTUsername
+      String :
+        Size : 7
+        Data : badges
+
+  Entry 20
+  Bitmap State : Written
+    Written Entry 20
+      NS Index : 1
+          NS : badge_config
+      Type : STR
+      Span : 2
+      ChunkIndex : 255
+      Key : MQTTPassword
+      String :
+        Size : 20
+        Data : TPY_net1pvg*ywf.cjk
+
+  Entry 22
+  Bitmap State : Written
+    Written Entry 22
+      NS Index : 1
+          NS : badge_config
+      Type : I32
+      Span : 1
+      ChunkIndex : 255
+      Key : MQTTPort
+      Data (I32) : 8883
+
+  Entry 23
+  Bitmap State : Written
+    Written Entry 23
+      NS Index : 1
+          NS : badge_config
+      Type : STR
+      Span : 2
+      ChunkIndex : 255
+      Key : DeviceName
+      String :
+        Size : 14
+        Data : HaySupernova2
+</div></section></section><section class="chapter"><h3 id="extracting-app0-1-other-partitions" data-toc="extracting-app0-1-other-partitions">Extracting App0/1 + Other Partitions</h3><p id="xun7yq_26">While not the most need is possible to pull out app0 using this program. This could be used to convert to an elf but at this time no program that I know can convert this with out errors.</p><div class="code-block" data-lang="bash">
+└─$ python esp32_image_parser.py dump_partition badge_flash.bin -partition app0
+Dumping partition 'app0' to app0_out.bin
+</div></section></section><section class="chapter"><h2 id="reviewing-creds-found-in-nvs" data-toc="reviewing-creds-found-in-nvs">Reviewing Creds found in NVS</h2><p id="xun7yq_28">We see three big systems of interest in NVS</p></section><section class="chapter"><h2 id="wifi-creds" data-toc="wifi-creds">Wifi Creds</h2><p id="xun7yq_29">We can pull the SSID and Password</p><div class="code-block" data-lang="none">
+SSID: WWHF Badges
+Password: 77HackTheEsp3too@
+</div><p id="xun7yq_31">There is nothing of interest using that as all transmissions are encrypted, but if you are not connected to the official wifi you can create your own</p></section><section class="chapter"><h2 id="aws-bucket" data-toc="aws-bucket">AWS Bucket</h2><p id="xun7yq_32">We see where the bin files are being stored</p><div class="code-block" data-lang="none">
+https://wwhf2024.s3.amazonaws.com/v2/wwhf2024.bin
+</div><p id="xun7yq_34">and we can guess and see that there is another one at</p><div class="code-block" data-lang="none">
+https://wwhf2024.s3.amazonaws.com/v1/wwhf2024.bin
+</div></section><section class="chapter"><h2 id="mqtt" data-toc="mqtt">MQTT</h2><div class="code-block" data-lang="none">
+URL:  w6e1deed.ala.us-east-1.emqxsl.com
+Username: badges
+Password: TPY_net1pvg*ywf.cjk
+MQTT Port: 8883
+
+Subscriptions
+	- broadcast/action
+	- events/device
+	- badges (Do not worry see extra for more info on this one)
+</div></section><div class="last-modified">Last modified: 14 October 2024</div><div data-feedback-placeholder="true"></div><div class="navigation-links _bottom"><a href="setup.html" class="navigation-links__prev">Setup</a><a href="connecting-to-mqtt.html" class="navigation-links__next">Connecting To MQTT</a></div></article><div id="disqus_thread"></div></div></section></main></div><script src="https://resources.jetbrains.com/writerside/apidoc/6.10.0-b419/app.js"></script></body></html>
